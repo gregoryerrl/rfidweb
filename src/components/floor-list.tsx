@@ -1,11 +1,12 @@
 "use client";
 
-import {useState, useEffect} from "react";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {ScrollArea} from "@/components/ui/scroll-area";
-import {personnelData} from "@/lib/data";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Personnel } from "@/lib/data";
 
 export function FloorList() {
+  const [pesonnel, setPersonnel] = useState<Personnel[]>([]);
   const [floorAssignments, setFloorAssignments] = useState<
     Record<string, string[]>
   >({});
@@ -19,7 +20,7 @@ export function FloorList() {
       assignments[i.toString()] = [];
     }
 
-    personnelData.forEach((person) => {
+    pesonnel.forEach((person) => {
       if (person.status === "Active") {
         assignments[person.currentFloor].push(
           `${person.firstName} ${person.lastName}`

@@ -1,6 +1,6 @@
 "use client";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {ScrollArea} from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -9,18 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {personnelData, eventsData} from "@/lib/data";
-import {OctagonAlert} from "lucide-react";
-import {onValue, ref, set} from "firebase/database";
-import {database} from "@/helpers/firebase";
-import {useEffect, useState} from "react";
+import { eventsData } from "@/lib/data";
+import { OctagonAlert } from "lucide-react";
+import { onValue, ref, set } from "firebase/database";
+import { database } from "@/helpers/firebase";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {Button} from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 type Vest = {
   accident: boolean;
@@ -31,14 +31,11 @@ type Vests = Record<string, Vest>;
 export default function Dashboard() {
   const [vestList, setVestList] = useState<Vests | null>(null);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
-  const totalPersonnel = personnelData.length;
-  const activePersonnel = personnelData.filter(
-    (p) => p.status === "Active"
-  ).length;
+  const totalPersonnel = 10;
+  const activePersonnel = 10;
 
   const findPersonnelByRfid = (rfid: string) => {
     // Find the personnel object matching the event's rfid
-    return personnelData.find((personnel) => personnel.rfid === rfid);
   };
 
   useEffect(() => {
@@ -165,11 +162,7 @@ export default function Dashboard() {
 
                   return (
                     <TableRow key={index}>
-                      <TableCell>
-                        {personnel
-                          ? `${personnel.firstName} ${personnel.lastName}`
-                          : "Unknown"}
-                      </TableCell>
+                      <TableCell>{true ? `asdd sdd` : "Unknown"}</TableCell>
                       <TableCell className="flex gap-x-2">
                         {event.description}{" "}
                         {event.type === "accident" ? (
