@@ -1,16 +1,20 @@
 "use client";
 
-import {useState} from "react";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {personnelData} from "@/lib/data";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { child, get, onValue, ref, set } from "firebase/database";
+import { database } from "@/helpers/firebase";
+import { toast } from "sonner";
+import { unsubscribe } from "diagnostics_channel";
 
 export function PersonnelForm() {
-  const [formData, setFormData] = useState({
+  const [data, setData] = useState({
     firstName: "",
     lastName: "",
     rfid: "",
+    vest: 0,
     restrictedFloors: "",
     status: "",
     position: "",
@@ -18,28 +22,39 @@ export function PersonnelForm() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({...formData, [e.target.name]: e.target.value});
+    setData({ ...data, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newPerson = {
-      ...formData,
-      restrictedFloors: formData.restrictedFloors
-        .split(",")
-        .map((floor) => floor.trim()),
-    };
-    personnelData.push(newPerson);
-    setFormData({
-      firstName: "",
-      lastName: "",
-      rfid: "",
-      restrictedFloors: "",
-      status: "",
-      position: "",
-      currentFloor: "",
+    const dbRef = ref(database);
+    get(child(dbRef, `Users/${data.rfid}`)).then((snapshot) => {
+      if (snapshot.exists()) {
+        toast.error("Personnel with that RFID already exists!");
+      } else {
+        set(ref(database, "Users/" + data.rfid), {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          rfid: data.rfid,
+          vest: data.vest,
+          restrictedFloors: data.restrictedFloors,
+          positionL: data.position,
+        });
+
+        setData({
+          firstName: "",
+          lastName: "",
+          rfid: "",
+          vest: 0,
+          restrictedFloors: "",
+          status: "",
+          position: "",
+          currentFloor: "",
+        });
+
+        toast.success("Personnel added successfully!");
+      }
     });
-    alert("New personnel added successfully!");
   };
 
   return (
@@ -52,7 +67,7 @@ export function PersonnelForm() {
             <Input
               id="firstName"
               name="firstName"
-              value={formData.firstName}
+              value={data.firstName}
               onChange={handleChange}
               required
             />
@@ -62,7 +77,7 @@ export function PersonnelForm() {
             <Input
               id="lastName"
               name="lastName"
-              value={formData.lastName}
+              value={data.lastName}
               onChange={handleChange}
               required
             />
@@ -73,7 +88,18 @@ export function PersonnelForm() {
           <Input
             id="rfid"
             name="rfid"
-            value={formData.rfid}
+            value={data.rfid}
+            onChange={handleChange}
+            required
+          />
+        </div>{" "}
+        <div>
+          <Label htmlFor="vest">Vest Number</Label>
+          <Input
+            id="vest"
+            name="vest"
+            type="number"
+            value={data.vest}
             onChange={handleChange}
             required
           />
@@ -85,18 +111,8 @@ export function PersonnelForm() {
           <Input
             id="restrictedFloors"
             name="restrictedFloors"
-            value={formData.restrictedFloors}
+            value={data.restrictedFloors}
             onChange={handleChange}
-          />
-        </div>
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <Input
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            required
           />
         </div>
         <div>
@@ -104,7 +120,7 @@ export function PersonnelForm() {
           <Input
             id="position"
             name="position"
-            value={formData.position}
+            value={data.position}
             onChange={handleChange}
             required
           />
