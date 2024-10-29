@@ -1,4 +1,5 @@
 "use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -24,38 +25,63 @@ import { Button } from "@/components/ui/button";
 
 type Vest = {
   accident: boolean;
+  name: string;
 };
 
 type Vests = Record<string, Vest>;
 
+type User = {
+  firstName: string;
+  lastName: string;
+  vest: string;
+};
+
+type Users = Record<string, User>;
+
 export default function Dashboard() {
   const [vestList, setVestList] = useState<Vests | null>(null);
+  const [userList, setUserList] = useState<Users | null>(null);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const totalPersonnel = 10;
   const activePersonnel = 10;
 
-  const findPersonnelByRfid = (rfid: string) => {
-    // Find the personnel object matching the event's rfid
+  const findPersonByVestNumber = (vestNumber: string) => {
+    if (userList) {
+      return Object.values(userList).find((user) => user.vest === vestNumber);
+    }
+    return null;
   };
 
   useEffect(() => {
-    const dbRef = ref(database, "Vests");
-    const unsubscribe = onValue(dbRef, (snapshot) => {
-      if (!snapshot.exists()) return;
+    const vestDbRef = ref(database, "Vests");
+    const userDbRef = ref(database, "Users");
 
-      const vestData: Vests = snapshot.val();
+    const vestUnsubscribe = onValue(vestDbRef, (vestSnapshot) => {
+      if (!vestSnapshot.exists()) return;
+      const vestData: Vests = vestSnapshot.val();
       setVestList(vestData);
-
-      // Vest data is correct here, so log it
-      console.log("Vest data:", vestData);
     });
 
-    return () => unsubscribe(); // Cleanup the listener when component unmounts
-  }, []); // Only run once, no need for deps here
+    const userUnsubscribe = onValue(userDbRef, (userSnapshot) => {
+      if (!userSnapshot.exists()) return;
+      const userData: Users = userSnapshot.val();
+      setUserList(userData);
+    });
 
-  // This effect will track changes to vestList
+    return () => {
+      vestUnsubscribe();
+      userUnsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log("Vest List:", vestList);
+    if (userList) {
+      console.log(Object.values(userList).find((user) => (user.vest = "1")));
+    }
+  });
+
+  useEffect(() => {
     if (
       vestList &&
       Object.values(vestList).some((vest) => vest.accident === true)
@@ -73,15 +99,16 @@ export default function Dashboard() {
     }
   }, [vestList]);
 
-  const handleResolve = (index: number) => {
-    set(ref(database, "Vests/" + index), {
+  const handleResolve = (vestNumber: string) => {
+    set(ref(database, "Vests/" + vestNumber), {
       accident: false,
     });
     if (vestList) {
       setVestList({
         ...vestList,
-        [index.toString()]: {
+        [vestNumber]: {
           accident: false,
+          name: vestList[vestNumber].name,
         },
       });
     }
@@ -102,12 +129,18 @@ export default function Dashboard() {
                   vest.accident === true ? (
                     <div
                       key={vestNumber}
-                      className="w-2/3 flex gap-x-3 items-center justify-between"
+                      className="w-full flex gap-x-3 items-center justify-between border-t pt-2"
                     >
-                      <span>Vest {vestNumber}</span>
+                      <span>
+                        {findPersonByVestNumber(vestNumber)
+                          ? `${findPersonByVestNumber(vestNumber)?.firstName} ${
+                              findPersonByVestNumber(vestNumber)?.lastName
+                            }`
+                          : `Vest ${vestNumber}`}
+                      </span>
                       <Button
                         variant={"destructive"}
-                        onClick={() => handleResolve(Number(vestNumber))}
+                        onClick={() => handleResolve(vestNumber)}
                       >
                         Resolve
                       </Button>
@@ -117,6 +150,7 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
       <h1 className="text-3xl font-bold">Dashboard</h1>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -158,8 +192,6 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {eventsData.map((event, index) => {
-                  const personnel = findPersonnelByRfid(event.rfid);
-
                   return (
                     <TableRow key={index}>
                       <TableCell>{true ? `asdd sdd` : "Unknown"}</TableCell>
