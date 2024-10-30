@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {ScrollArea} from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -10,18 +11,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { eventsData } from "@/lib/data";
-import { OctagonAlert } from "lucide-react";
-import { onValue, ref, set } from "firebase/database";
-import { database } from "@/helpers/firebase";
-import { useEffect, useState } from "react";
+import {OctagonAlert} from "lucide-react";
+import {onValue, ref, set, push, get, remove} from "firebase/database";
+import {database} from "@/helpers/firebase";
+import {useEffect, useState} from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {Button} from "@/components/ui/button";
 
 type Vest = {
   accident: boolean;
@@ -38,10 +38,19 @@ type User = {
 
 type Users = Record<string, User>;
 
+type Event = {
+  id: string;
+  type: string;
+  name: string;
+  vestNumber: string;
+  timestamp: number;
+};
+
 export default function Dashboard() {
   const [vestList, setVestList] = useState<Vests | null>(null);
   const [userList, setUserList] = useState<Users | null>(null);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [eventsData, setEventsData] = useState<Event[]>([]);
   const totalPersonnel = 10;
   const activePersonnel = 10;
 
@@ -55,6 +64,7 @@ export default function Dashboard() {
   useEffect(() => {
     const vestDbRef = ref(database, "Vests");
     const userDbRef = ref(database, "Users");
+    const accidentsRef = ref(database, "Accident");
 
     const vestUnsubscribe = onValue(vestDbRef, (vestSnapshot) => {
       if (!vestSnapshot.exists()) return;
@@ -68,18 +78,29 @@ export default function Dashboard() {
       setUserList(userData);
     });
 
+    const accidentUnsubscribe = onValue(accidentsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const eventsArray = Object.entries(data).map(
+          ([key, value]: [string, any]) => ({
+            id: key,
+            ...value,
+          })
+        );
+
+        eventsArray.sort((a, b) => b.timestamp - a.timestamp);
+        setEventsData(eventsArray);
+      } else {
+        setEventsData([]);
+      }
+    });
+
     return () => {
       vestUnsubscribe();
       userUnsubscribe();
+      accidentUnsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    console.log("Vest List:", vestList);
-    if (userList) {
-      console.log(Object.values(userList).find((user) => (user.vest = "1")));
-    }
-  });
 
   useEffect(() => {
     if (
@@ -99,18 +120,58 @@ export default function Dashboard() {
     }
   }, [vestList]);
 
-  const handleResolve = (vestNumber: string) => {
-    set(ref(database, "Vests/" + vestNumber), {
-      accident: false,
-    });
-    if (vestList) {
-      setVestList({
-        ...vestList,
-        [vestNumber]: {
-          accident: false,
-          name: vestList[vestNumber].name,
-        },
+  const handleResolve = async (vestNumber: string) => {
+    try {
+      // Update vest status
+      await set(ref(database, "Vests/" + vestNumber), {
+        accident: false,
+        name: vestList?.[vestNumber]?.name || "",
       });
+
+      // Update local state
+      if (vestList) {
+        setVestList({
+          ...vestList,
+          [vestNumber]: {
+            accident: false,
+            name: vestList[vestNumber].name,
+          },
+        });
+      }
+
+      // Add to accident history
+      const accidentRef = ref(database, "Accident");
+      const accidentSnapshot = await get(accidentRef);
+      const accidents = accidentSnapshot.val() || {};
+
+      const accidentsArray = Object.entries(accidents).map(
+        ([key, value]: [string, any]) => ({
+          key,
+          ...value,
+          timestamp: value.timestamp || Date.now(),
+        })
+      );
+
+      accidentsArray.sort((a, b) => b.timestamp - a.timestamp);
+
+      if (accidentsArray.length >= 10) {
+        const oldestAccident = accidentsArray[accidentsArray.length - 1];
+        await remove(ref(database, `Accident/${oldestAccident.key}`));
+      }
+
+      const person = findPersonByVestNumber(vestNumber);
+      const name = person
+        ? `${person.firstName} ${person.lastName}`
+        : `Vest ${vestNumber}`;
+
+      await push(accidentRef, {
+        type: "accident",
+        name,
+        vestNumber,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error("Error handling resolve:", error);
     }
   };
 
@@ -118,7 +179,6 @@ export default function Dashboard() {
     <div className="container mx-auto p-6 space-y-6">
       <Dialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
         <DialogContent>
-          {" "}
           <DialogHeader>
             <DialogTitle>Accident Tracker</DialogTitle>
           </DialogHeader>
@@ -139,7 +199,7 @@ export default function Dashboard() {
                           : `Vest ${vestNumber}`}
                       </span>
                       <Button
-                        variant={"destructive"}
+                        variant="destructive"
                         onClick={() => handleResolve(vestNumber)}
                       >
                         Resolve
@@ -191,24 +251,22 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {eventsData.map((event, index) => {
-                  return (
-                    <TableRow key={index}>
-                      <TableCell>{true ? `asdd sdd` : "Unknown"}</TableCell>
-                      <TableCell className="flex gap-x-2">
-                        {event.description}{" "}
-                        {event.type === "accident" ? (
-                          <span className="text-red-500">
-                            <OctagonAlert />
-                          </span>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(event.timestamp).toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {eventsData.map((event) => (
+                  <TableRow key={event.id}>
+                    <TableCell>{event.name}</TableCell>
+                    <TableCell className="flex gap-x-2">
+                      {`Vest ${event.vestNumber} reported an accident`}
+                      {event.type === "accident" && (
+                        <span className="text-red-500">
+                          <OctagonAlert size={20} />
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(event.timestamp).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </ScrollArea>
