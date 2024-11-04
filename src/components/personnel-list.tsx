@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -9,10 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {ScrollArea} from "@/components/ui/scroll-area";
-import {Personnel} from "@/lib/data";
-import {onValue, ref, remove, set} from "firebase/database";
-import {database} from "@/helpers/firebase";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Personnel } from "@/lib/data";
+import { onValue, ref, remove, set } from "firebase/database";
+import { database } from "@/helpers/firebase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {EllipsisVertical, Pencil, Trash} from "lucide-react";
-import {toast} from "sonner";
+import { EllipsisVertical, Pencil, Trash } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -29,10 +29,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "./ui/dialog";
-import {Button} from "./ui/button";
-import {Label} from "@/components/ui/label";
-import {Input} from "@/components/ui/input";
+import { Button } from "./ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -129,6 +130,7 @@ export function PersonnelList() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Personnel Information</DialogTitle>
+            <DialogDescription>RFID: {editingPerson?.rfid}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -141,7 +143,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? {...prev, firstName: e.target.value} : null
+                    prev ? { ...prev, firstName: e.target.value } : null
                   )
                 }
               />
@@ -156,7 +158,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? {...prev, lastName: e.target.value} : null
+                    prev ? { ...prev, lastName: e.target.value } : null
                   )
                 }
               />
@@ -171,7 +173,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? {...prev, vest: e.target.value} : null
+                    prev ? { ...prev, vest: e.target.value } : null
                   )
                 }
               />
@@ -186,7 +188,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? {...prev, position: e.target.value} : null
+                    prev ? { ...prev, position: e.target.value } : null
                   )
                 }
               />
@@ -201,7 +203,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? {...prev, restrictedFloors: e.target.value} : null
+                    prev ? { ...prev, restrictedFloors: e.target.value } : null
                   )
                 }
               />
@@ -214,7 +216,7 @@ export function PersonnelList() {
                 value={editingPerson?.status}
                 onValueChange={(value) =>
                   setEditingPerson((prev) =>
-                    prev ? {...prev, status: value} : null
+                    prev ? { ...prev, status: value } : null
                   )
                 }
               >

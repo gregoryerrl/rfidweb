@@ -1,5 +1,5 @@
 "use client";
-import {usePathname} from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function Nav() {
@@ -38,6 +38,14 @@ export default function Nav() {
           )} link flex justify-center items-center rounded-md p-2`}
         >
           Personnel
+        </Link>
+        <Link
+          href={"/rfid-checker"}
+          className={`${isActive(
+            "/rfid-checker"
+          )} link flex justify-center items-center rounded-md p-2`}
+        >
+          RFID Checker
         </Link>
       </ul>
     </nav>

@@ -1,4 +1,4 @@
-import {FloorList} from "@/components/floor-list";
+import FloorList from "@/components/floor-list";
 
 export default function FloorTracker() {
   return (
