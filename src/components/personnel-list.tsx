@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import {
   Table,
   TableBody,
@@ -9,10 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Personnel } from "@/lib/data";
-import { onValue, ref, remove, set } from "firebase/database";
-import { database } from "@/helpers/firebase";
+import {ScrollArea} from "@/components/ui/scroll-area";
+import {Personnel} from "@/lib/data";
+import {onValue, ref, remove, set} from "firebase/database";
+import {database} from "@/helpers/firebase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +21,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EllipsisVertical, Pencil, Trash } from "lucide-react";
-import { toast } from "sonner";
+import {EllipsisVertical, Pencil, Trash} from "lucide-react";
+import {toast} from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -31,9 +32,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import {Button} from "./ui/button";
+import {Label} from "@/components/ui/label";
+import {Input} from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {Badge} from "@/components/ui/badge";
+import {X} from "lucide-react";
 
 type Person = {
   firstName: string;
@@ -48,7 +51,7 @@ type Person = {
   rfid: string;
   vest: string;
   position: string;
-  restrictedFloors: string;
+  restrictedFloors: string[];
   status: string;
 };
 
@@ -58,6 +61,7 @@ export function PersonnelList() {
   const [openEdit, setOpenEdit] = useState(false);
   const [deleteRfid, setDeleteRfid] = useState("");
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [newFloor, setNewFloor] = useState("");
 
   useEffect(() => {
     const dbRef = ref(database, "Users");
@@ -65,7 +69,21 @@ export function PersonnelList() {
       if (!snapshot.exists()) return;
 
       const personnelData: Personnel = snapshot.val();
-      setPersonnel(personnelData);
+      // Convert string restricted floors to array if needed
+      const normalizedData = Object.fromEntries(
+        Object.entries(personnelData).map(([key, person]) => {
+          const restrictedFloors = Array.isArray(person.restrictedFloors)
+            ? person.restrictedFloors
+            : typeof person.restrictedFloors === "string"
+            ? person.restrictedFloors
+                .split(",")
+                .map((f: any) => f.trim())
+                .filter(Boolean)
+            : [];
+          return [key, {...person, restrictedFloors}];
+        })
+      );
+      setPersonnel(normalizedData);
     });
 
     return () => unsubscribe();
@@ -85,7 +103,16 @@ export function PersonnelList() {
   };
 
   const handleEdit = (person: Person) => {
-    setEditingPerson(person);
+    // Ensure restrictedFloors is always an array
+    const restrictedFloors = Array.isArray(person.restrictedFloors)
+      ? person.restrictedFloors
+      : typeof person.restrictedFloors === "string"
+      ? person.restrictedFloors
+          .split(",")
+          .map((f: any) => f.trim())
+          .filter(Boolean)
+      : [];
+    setEditingPerson({...person, restrictedFloors});
     setOpenEdit(true);
   };
 
@@ -100,6 +127,29 @@ export function PersonnelList() {
       console.error(error);
       toast.error("Failed to update personnel");
     }
+  };
+
+  const addRestrictedFloor = () => {
+    if (!newFloor || !editingPerson) return;
+
+    setEditingPerson((prev) => {
+      if (!prev) return null;
+      const updatedFloors = [...new Set([...prev.restrictedFloors, newFloor])];
+      return {...prev, restrictedFloors: updatedFloors};
+    });
+    setNewFloor("");
+  };
+
+  const removeRestrictedFloor = (floor: string) => {
+    if (!editingPerson) return;
+
+    setEditingPerson((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        restrictedFloors: prev.restrictedFloors.filter((f) => f !== floor),
+      };
+    });
   };
 
   return (
@@ -143,7 +193,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? { ...prev, firstName: e.target.value } : null
+                    prev ? {...prev, firstName: e.target.value} : null
                   )
                 }
               />
@@ -158,7 +208,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? { ...prev, lastName: e.target.value } : null
+                    prev ? {...prev, lastName: e.target.value} : null
                   )
                 }
               />
@@ -173,7 +223,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? { ...prev, vest: e.target.value } : null
+                    prev ? {...prev, vest: e.target.value} : null
                   )
                 }
               />
@@ -188,7 +238,7 @@ export function PersonnelList() {
                 className="col-span-3"
                 onChange={(e) =>
                   setEditingPerson((prev) =>
-                    prev ? { ...prev, position: e.target.value } : null
+                    prev ? {...prev, position: e.target.value} : null
                   )
                 }
               />
@@ -197,16 +247,32 @@ export function PersonnelList() {
               <Label htmlFor="restricted" className="text-right">
                 Restriction
               </Label>
-              <Input
-                id="restricted"
-                value={editingPerson?.restrictedFloors || ""}
-                className="col-span-3"
-                onChange={(e) =>
-                  setEditingPerson((prev) =>
-                    prev ? { ...prev, restrictedFloors: e.target.value } : null
-                  )
-                }
-              />
+              <div className="col-span-3 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    id="restricted"
+                    value={newFloor}
+                    onChange={(e) => setNewFloor(e.target.value)}
+                    placeholder="Add floor number"
+                  />
+                  <Button onClick={addRestrictedFloor} type="button">
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {editingPerson?.restrictedFloors.map((floor) => (
+                    <Badge key={floor} variant="secondary">
+                      {floor}
+                      <button
+                        onClick={() => removeRestrictedFloor(floor)}
+                        className="ml-1 hover:bg-muted rounded-full"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
@@ -216,7 +282,7 @@ export function PersonnelList() {
                 value={editingPerson?.status}
                 onValueChange={(value) =>
                   setEditingPerson((prev) =>
-                    prev ? { ...prev, status: value } : null
+                    prev ? {...prev, status: value} : null
                   )
                 }
               >
@@ -290,7 +356,17 @@ export function PersonnelList() {
                 <TableCell>{person.rfid}</TableCell>
                 <TableCell>{person.vest}</TableCell>
                 <TableCell>{person.position}</TableCell>
-                <TableCell>{person.restrictedFloors}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {Array.isArray(person.restrictedFloors)
+                      ? person.restrictedFloors.map((floor: any) => (
+                          <Badge key={floor} variant="secondary">
+                            {floor}
+                          </Badge>
+                        ))
+                      : null}
+                  </div>
+                </TableCell>
                 <TableCell>{person.status}</TableCell>
               </TableRow>
             ))}
