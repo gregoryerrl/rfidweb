@@ -22,6 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
+import {Label} from "@/components/ui/label";
+import {Input} from "@/components/ui/input";
 
 type Vest = {
   accident: boolean;
@@ -47,12 +49,14 @@ type Event = {
 };
 
 export default function Dashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
   const [vestList, setVestList] = useState<Vests | null>(null);
   const [userList, setUserList] = useState<Users | null>(null);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const [eventsData, setEventsData] = useState<Event[]>([]);
-  const totalPersonnel = 10;
-  const activePersonnel = 10;
+  const totalPersonnel = 0;
+  const activePersonnel = 0;
 
   const findPersonByVestNumber = (vestNumber: string) => {
     if (userList) {
@@ -174,6 +178,44 @@ export default function Dashboard() {
       console.error("Error handling resolve:", error);
     }
   };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Replace 'your-secret-password' with the actual password you want to use
+    if (password === "rfidadmin0513") {
+      setIsAuthenticated(true);
+    } else {
+      alert("Incorrect password");
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Login
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
